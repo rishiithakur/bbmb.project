@@ -219,7 +219,7 @@ class WaterLevelLogSerializer(serializers.ModelSerializer):
     # ── Helpers ───────────────────────────────────────────────────────────────
     @staticmethod
     def _extract_dam_data(request) -> dict:
-        """Pull DamObservation fields from raw request data, cleaning NaN floats."""
+        """Pull DamObservation fields from raw request data, supporting explicit field clearing."""
         if not request:
             return {}
         raw = request.data
@@ -227,8 +227,14 @@ class WaterLevelLogSerializer(serializers.ModelSerializer):
         for field in DAM_FIELDS:
             if field in raw:
                 val = raw.get(field)
-                # Skip empty strings and None
+                # If explicitly set to empty/null, set it to None in the DB (for PATCH/PUT updates to clear)
                 if val is None or val == '' or val == 'null':
-                    continue
-                result[field] = val
+                    if field == 'dam_condition':
+                        result[field] = 'Normal'
+                    elif field == 'alert_level':
+                        result[field] = 'Green'
+                    else:
+                        result[field] = None
+                else:
+                    result[field] = val
         return result

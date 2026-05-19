@@ -53,12 +53,16 @@ type FeedbackState = { type: 'success' | 'error' | null; message: string };
 // ── Auto-save draft key ──────────────────────────────────────────────────────
 const getDraftKey = (userId: any) => `bbmc_draft_${userId}`;
 
-// ── Helper: strip NaN/undefined optional numbers ─────────────────────────────
+// ── Helper: map NaN/empty/undefined fields properly to allow explicit clearing ──
 function cleanPayload(values: FormValues): Partial<ObservationPayload> {
   const out: any = {};
   for (const [k, v] of Object.entries(values)) {
-    if (v === undefined || v === null || (typeof v === 'number' && isNaN(v))) continue;
-    out[k] = v;
+    if (v === undefined) continue;
+    if (v === null || v === '' || (typeof v === 'number' && isNaN(v))) {
+      out[k] = null;
+    } else {
+      out[k] = v;
+    }
   }
   return out;
 }
