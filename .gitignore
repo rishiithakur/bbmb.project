@@ -91,3 +91,6 @@ cloudflared.exe
 /*.ps1
 /*.py
 /requirements.txt
+
+# Operational & Client Handover Guides (Kept locally only)
+/project_production/
