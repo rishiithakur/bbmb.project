@@ -3,9 +3,15 @@ import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'a
 import { useAuthStore } from '../store/auth.store'
 
 const getBaseUrl = () => {
-  const viteApiUrl = import.meta.env.VITE_API_URL
+  let viteApiUrl = import.meta.env.VITE_API_URL
   if (viteApiUrl !== undefined && viteApiUrl !== '') {
-    return viteApiUrl.endsWith('/') ? viteApiUrl.slice(0, -1) : viteApiUrl
+    if (viteApiUrl.endsWith('/')) {
+      viteApiUrl = viteApiUrl.slice(0, -1)
+    }
+    if (!viteApiUrl.endsWith('/api/v1') && !viteApiUrl.endsWith('api/v1')) {
+      return `${viteApiUrl}/api/v1`
+    }
+    return viteApiUrl
   }
   const envUrl = import.meta.env.VITE_API_BASE_URL
   if (envUrl !== undefined) {
@@ -25,6 +31,12 @@ export const apiClient: AxiosInstance = axios.create({
 // REQUEST INTERCEPTOR — attach JWT access token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // If baseURL is an absolute URL and the request url has a leading slash,
+    // strip the leading slash so Axios doesn't discard baseURL suffix (e.g. /api/v1)
+    if (config.baseURL && config.baseURL.startsWith('http') && config.url && config.url.startsWith('/')) {
+      config.url = config.url.substring(1)
+    }
+    
     const token = useAuthStore.getState().accessToken
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`

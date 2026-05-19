@@ -6,9 +6,25 @@ import {
 import { useAuthStore } from '../store/auth.store'
 import { useUIStore } from '../store/ui.store'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL !== undefined
-  ? (import.meta.env.VITE_API_BASE_URL === '' ? '/api/v1' : import.meta.env.VITE_API_BASE_URL)
-  : 'http://localhost:8000/api/v1'
+const getApiBase = () => {
+  let url = import.meta.env.VITE_API_URL
+  if (url !== undefined && url !== '') {
+    if (url.endsWith('/')) {
+      url = url.slice(0, -1)
+    }
+    if (!url.endsWith('/api/v1') && !url.endsWith('api/v1')) {
+      return `${url}/api/v1`
+    }
+    return url
+  }
+  const baseUrl = import.meta.env.VITE_API_BASE_URL
+  if (baseUrl !== undefined) {
+    return baseUrl === '' ? '/api/v1' : baseUrl
+  }
+  return 'http://localhost:8000/api/v1'
+}
+
+const API_BASE = getApiBase()
 
 // ── Role-based nav link definitions ────────────────────────────────────────────
 
