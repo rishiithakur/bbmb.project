@@ -166,7 +166,9 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() in ('true', '1', 'yes')
+# Fix: Disabling CORS_ALLOW_ALL_ORIGINS is mandatory when CORS_ALLOW_CREDENTIALS = True,
+# otherwise modern browsers block incoming requests with authorization/session headers.
+CORS_ALLOW_ALL_ORIGINS = False
 
 cors_origins_env = os.getenv('CORS_ALLOWED_ORIGINS')
 if cors_origins_env:
@@ -176,10 +178,28 @@ else:
         'http://localhost:5173',
         'http://localhost:3000',
         'http://127.0.0.1:5173',
-        'https://bbmbprojectt.vercel.app'
+        'https://bbmbprojectt.vercel.app',
     ]
 
+# Dynamically add custom Cloudflare tunnels or dynamic dev ports
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.trycloudflare\.com$",
+    r"^https://.*\.localline\.com$",
+]
+
 CORS_ALLOW_CREDENTIALS = True
+
+# Django CSRF Trusted Origins (Mandatory for cross-site state-changing POST/PATCH/DELETE calls in Django 4+)
+CSRF_TRUSTED_ORIGINS = [
+    'https://bbmbprojectt.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+]
+
+csrf_origins_env = os.getenv('CSRF_TRUSTED_ORIGINS')
+if csrf_origins_env:
+    CSRF_TRUSTED_ORIGINS.extend([origin.strip() for origin in csrf_origins_env.split(',') if origin.strip()])
 
 
 # ─── PASSWORD HASHING ─────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ from .views import HealthCheckView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/health/', HealthCheckView.as_view(), name='health_check'),
+    path('api/health/', HealthCheckView.as_view(), name='health_check_legacy'),
     
     # Auth
     # Auth (SimpleJWT defaults)

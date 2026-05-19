@@ -47,6 +47,13 @@ class HealthCheckView(APIView):
 
         return Response({
             'status': 'healthy' if db_healthy else 'unhealthy',
+            'database_connected': db_healthy,
+            'database_status': 'connected' if db_healthy else 'disconnected',
+            'database_error': db_error if not db_healthy else None,
+            'pooling_active': bool(settings.DATABASES['default'].get('CONN_MAX_AGE', 0)),
+            'environment_configured': env_configured,
+            'debug_mode': settings.DEBUG,
+            'timestamp': time.time(),
             'database': {
                 'connected': db_healthy,
                 'error': db_error if not db_healthy else None,
@@ -55,6 +62,5 @@ class HealthCheckView(APIView):
             'environment': {
                 'configured': env_configured,
                 'debug_mode': settings.DEBUG
-            },
-            'timestamp': time.time()
+            }
         }, status=response_status)

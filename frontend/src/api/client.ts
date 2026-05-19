@@ -13,17 +13,29 @@ const getBaseUrl = () => {
     }
     return viteApiUrl
   }
+
+  // Robust Runtime Fallback for CDN deployments (Vercel)
+  // If we are on a production deployed URL, force communication with Render backend
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname
+    if (host !== 'localhost' && host !== '127.0.0.1' && !host.startsWith('192.168.')) {
+      console.log(`[API CLIENT] Production environment detected on host "${host}". Falling back to Render backend.`);
+      return 'https://bbmb-backend-ee5k.onrender.com/api/v1'
+    }
+  }
+
   const envUrl = import.meta.env.VITE_API_BASE_URL
   if (envUrl !== undefined) {
     return envUrl === '' ? '/api/v1' : envUrl
   }
-  return '/api/v1'
+  return 'http://localhost:8000/api/v1'
 }
 
-const BASE_URL = getBaseUrl()
+export const API_BASE = getBaseUrl()
+console.log(`[API CLIENT] Initialized base URL: "${API_BASE}"`);
 
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })

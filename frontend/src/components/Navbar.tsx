@@ -6,25 +6,7 @@ import { useAuthStore } from '../store/auth.store'
 import { auditApi } from '../api/audit.api'
 import type { AppNotification } from '../types'
 
-const getApiBase = () => {
-  let url = import.meta.env.VITE_API_URL
-  if (url !== undefined && url !== '') {
-    if (url.endsWith('/')) {
-      url = url.slice(0, -1)
-    }
-    if (!url.endsWith('/api/v1') && !url.endsWith('api/v1')) {
-      return `${url}/api/v1`
-    }
-    return url
-  }
-  const baseUrl = import.meta.env.VITE_API_BASE_URL
-  if (baseUrl !== undefined) {
-    return baseUrl === '' ? '/api/v1' : baseUrl
-  }
-  return 'http://localhost:8000/api/v1'
-}
-
-const API_BASE = getApiBase()
+import { API_BASE } from '../api/client'
 
 function formatRole(role: string | undefined): string {
   if (!role) return ''

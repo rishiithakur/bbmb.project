@@ -1,26 +1,6 @@
 import { Outlet } from 'react-router-dom'
 
-// Dynamic base URL — reads from .env so it works on laptop, LAN, and Cloudflare tunnels.
-// Mobile devices resolve "localhost" as the phone itself, breaking branding image requests.
-const getApiBase = () => {
-  let url = import.meta.env.VITE_API_URL
-  if (url !== undefined && url !== '') {
-    if (url.endsWith('/')) {
-      url = url.slice(0, -1)
-    }
-    if (!url.endsWith('/api/v1') && !url.endsWith('api/v1')) {
-      return `${url}/api/v1`
-    }
-    return url
-  }
-  const baseUrl = import.meta.env.VITE_API_BASE_URL
-  if (baseUrl !== undefined) {
-    return baseUrl === '' ? '/api/v1' : baseUrl
-  }
-  return 'http://localhost:8000/api/v1'
-}
-
-const API_BASE = getApiBase()
+import { API_BASE } from '../api/client'
 
 export function AuthLayout() {
   return (

@@ -2,27 +2,7 @@ import React, { useState } from 'react'
 import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../features/auth/useAuth'
 
-// Dynamic base URL: reads from .env so logo loads correctly on laptop, LAN IP, and Cloudflare tunnel.
-// Hardcoded localhost fails on mobile — phone resolves localhost as itself, not the server.
-const getApiBase = () => {
-  let url = import.meta.env.VITE_API_URL
-  if (url !== undefined && url !== '') {
-    if (url.endsWith('/')) {
-      url = url.slice(0, -1)
-    }
-    if (!url.endsWith('/api/v1') && !url.endsWith('api/v1')) {
-      return `${url}/api/v1`
-    }
-    return url
-  }
-  const baseUrl = import.meta.env.VITE_API_BASE_URL
-  if (baseUrl !== undefined) {
-    return baseUrl === '' ? '/api/v1' : baseUrl
-  }
-  return 'http://localhost:8000/api/v1'
-}
-
-const API_BASE = getApiBase()
+import { API_BASE } from '../api/client'
 
 export default function Login() {
   const [username, setUsername] = useState('')
