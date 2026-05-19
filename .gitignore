@@ -72,3 +72,22 @@ Thumbs.db
 # External Binaries
 cloudflared
 cloudflared.exe
+
+# ==========================================
+# Exclude root-level non-project resources
+# ==========================================
+/desgin of our thing/
+/pics/
+/builds/
+/DEVELOPMENT_ENVIRONMENT_REPORT.md
+/README_CREDENTIALS.md
+
+# Root-level media, design docs, phase logs, script templates
+/*.pdf
+/*.txt
+/*.xlsx
+/*.json
+/*.bat
+/*.ps1
+/*.py
+/requirements.txt
