@@ -1,0 +1,970 @@
+================================================================================
+  DAM WATER LEVEL MONITORING & MANAGEMENT WEB APPLICATION
+  MASTER PROMPT + STEP-BY-STEP BUILD GUIDE (Google Cloud / Firebase Hosting)
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION A — AI MASTER PROMPT (Copy this to AI when building each module)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You are a senior full-stack web developer. You will build a professional,
+production-ready Dam Water Level Monitoring and Management Web Application.
+Follow every instruction below exactly. Do not skip any requirement.
+Ask for clarification only if something is truly ambiguous.
+
+─────────────────────────────────────────────────────────────────────────────
+TECH STACK (mandatory — do not substitute)
+─────────────────────────────────────────────────────────────────────────────
+
+  Frontend  : HTML5 + CSS3 + Vanilla JavaScript OR React.js
+              Leaflet.js v1.9+ for all GIS/map features
+              Fully responsive — must work on Android mobile browsers
+              Touch-friendly UI — large buttons, readable fonts (min 16px)
+
+  Backend   : Python + Django 4.x (REST API via Django REST Framework)
+              Django ORM for all database operations
+              Django sessions + JWT tokens for authentication
+
+  Database  : PostgreSQL 15+
+              All passwords hashed using Django's PBKDF2 / bcrypt
+
+  Hosting   : Google Cloud Platform (GCP)
+              - App Engine (Standard) OR Cloud Run for Django backend
+              - Cloud SQL (PostgreSQL) as managed database
+              - Firebase Hosting OR Cloud Storage for static frontend files
+              - HTTPS enforced on all endpoints (SSL via GCP)
+
+  Reports   : openpyxl (Excel), ReportLab (PDF), Python csv module (CSV)
+
+─────────────────────────────────────────────────────────────────────────────
+PROJECT OVERVIEW (what the client needs)
+─────────────────────────────────────────────────────────────────────────────
+
+This application collects, manages, monitors, and reviews manual dam water
+level observations from approximately 50 dam/reservoir monitoring sites
+across multiple districts and states. Field staff (Dam Site Users) log in
+on mobile phones from field locations and manually enter daily water level
+data. Administrators monitor all submitted data through a central dashboard
+with GIS map visualization, reports, and alerts.
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 1 — AUTHENTICATION SYSTEM
+─────────────────────────────────────────────────────────────────────────────
+
+Build a secure login system with the following specifications:
+
+  1.1  Login page must have username + password fields.
+       Show/hide password toggle button.
+       "Remember Me" checkbox for session persistence.
+
+  1.2  Two user roles must exist:
+         ADMIN USER   — full system access, monitoring, reports, user mgmt
+         DAM SITE USER — restricted access, only their assigned site
+
+  1.3  After login, redirect:
+         Admin     → Admin Dashboard
+         Site User → Their site's Data Entry form
+
+  1.4  Session timeout after 30 minutes of inactivity.
+       Show warning popup 5 minutes before timeout.
+
+  1.5  Failed login attempts: lock account after 5 consecutive failures.
+       Admin can unlock accounts.
+
+  1.6  All passwords stored using Django's built-in password hashing.
+       NEVER store plain text passwords.
+
+  1.7  Implement CSRF protection on all forms.
+       Implement SQL injection prevention via Django ORM (no raw queries).
+
+  1.8  Maintain login audit log:
+         - Username, login datetime, logout datetime, IP address, status
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 2 — SITE MASTER (Dam/Reservoir Location Registry)
+─────────────────────────────────────────────────────────────────────────────
+
+Admin-only module. Store and manage all 50 monitoring site records.
+
+  Database table fields (all required unless marked optional):
+    - site_id            (auto-generated unique ID)
+    - site_name          (text, e.g. "Bhakra Dam Site 1")
+    - site_code          (unique short code, e.g. "BHK-01")
+    - dam_reservoir_name (text)
+    - district_name      (text)
+    - state_name         (dropdown — Indian states list)
+    - river_name         (text)
+    - latitude           (decimal, e.g. 25.4568)
+    - longitude          (decimal, e.g. 77.3214)
+    - full_reservoir_level    (numeric, in meters)
+    - minimum_draw_down_level (numeric, in meters)
+    - danger_level            (numeric, in meters)
+    - warning_level           (numeric, in meters)
+    - gauge_type         (text, optional)
+    - gauge_details      (text, optional)
+    - site_status        (Active / Inactive)
+    - created_by         (admin username)
+    - created_date       (auto timestamp)
+    - updated_date       (auto timestamp)
+
+  Admin capabilities:
+    - Create new site record
+    - Edit/update existing site
+    - Activate or Deactivate site (soft delete — never hard delete)
+    - Search sites by name, code, district, state, river
+    - View all sites in a paginated table (20 per page)
+    - Export site list to Excel/CSV
+
+  All active site locations must appear as markers on the Leaflet GIS map.
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 3 — USER MASTER (User Management)
+─────────────────────────────────────────────────────────────────────────────
+
+Admin-only module. Manage all application users.
+
+  Database table fields:
+    - user_id            (auto-generated)
+    - full_name          (text)
+    - username           (unique, lowercase, no spaces)
+    - password           (stored hashed)
+    - email              (optional)
+    - mobile_number      (optional, 10-digit)
+    - user_role          (Admin / Dam Site User)
+    - assigned_site_id   (foreign key → Site Master, required for Site Users)
+    - account_status     (Active / Inactive / Locked)
+    - last_login         (datetime, auto-captured)
+    - created_by         (admin username)
+    - created_date       (auto timestamp)
+
+  Admin capabilities:
+    - Create new user with role assignment
+    - Assign Dam Site User to exactly one monitoring site
+    - Reset user password (admin sets new temporary password)
+    - Activate / Deactivate / Unlock user accounts
+    - View user list with filters (role, site, status)
+    - View user activity log (login history)
+
+  Rules:
+    - One site can have multiple Dam Site Users
+    - One Dam Site User belongs to exactly one site
+    - Admin users are not assigned to any specific site
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 4 — DATA ENTRY FORM (Field Observation Entry)
+─────────────────────────────────────────────────────────────────────────────
+
+This is the most critical module. Dam Site Users access this on mobile phones.
+UI must be clean, large-touch-friendly, and work on 360px–414px screen widths.
+
+  4.1  FORM FIELDS (all data to be captured):
+
+    SECTION A — Basic Info (auto-filled, read-only for user)
+      - Site Name         (from user's assigned site)
+      - Site Code         (from user's assigned site)
+      - Dam / Reservoir   (from user's assigned site)
+      - Observer Name     (from logged-in user's full name)
+
+    SECTION B — Observation Details (user fills these)
+      - Observation Date  (date picker, default = today, NO future dates allowed)
+      - Observation Time  (time picker, default = current time)
+
+    SECTION C — Water Level Data
+      - Current Water Level (numeric, meters, 2 decimal places)
+        → Auto-compare with danger_level and warning_level from Site Master
+        → Show color alert inline: GREEN / YELLOW / RED
+      - Full Reservoir Level (auto-filled from Site Master, read-only)
+      - Minimum Draw Down Level (auto-filled, read-only)
+      - Danger Level       (auto-filled, read-only, shown for reference)
+
+    SECTION D — Inflow / Outflow / Storage
+      - Total Inflow       (numeric, cumecs or MCM — specify unit label)
+      - Total Outflow      (numeric)
+      - Live Storage       (numeric, MCM)
+      - Dead Storage       (numeric, MCM, optional)
+      - Percentage Full    (auto-calculated: Live Storage / Full Capacity × 100)
+
+    SECTION E — Rainfall
+      - Rainfall Today     (numeric, mm)
+      - Cumulative Rainfall (numeric, mm, optional)
+
+    SECTION F — Gate Operations
+      - Gates Open?        (Yes / No radio button)
+      - If Yes → Number of Gates Open (numeric)
+      - Gate Opening Height (numeric, meters, appears only if Gates Open = Yes)
+      - Discharge Through Gates (numeric, cumecs)
+      - Spillway Discharge (numeric, optional)
+
+    SECTION G — Field Conditions
+      - Weather Condition  (dropdown: Clear / Cloudy / Rainy / Foggy / Stormy)
+      - Water Quality      (dropdown: Good / Turbid / Discolored / Flood Water)
+      - Site Condition Remarks (textarea, max 500 chars)
+      - General Remarks    (textarea, max 500 chars)
+
+    SECTION H — Photos & Location
+      - Upload Site Photos (allow up to 5 images from device camera or gallery)
+        → Compress images client-side before upload (max 1MB each)
+        → Show thumbnail preview before submission
+      - GPS Latitude  (auto-captured from browser geolocation API, editable)
+      - GPS Longitude (auto-captured from browser geolocation API, editable)
+      - If GPS unavailable → show message "Location not captured" and allow manual entry
+
+  4.2  VALIDATION RULES (enforce strictly):
+    - Observation Date: cannot be future date
+    - Current Water Level: required, must be numeric, must be > 0
+    - Inflow, Outflow, Storage: numeric only, cannot be negative
+    - Rainfall: numeric only, cannot be negative
+    - If Gates Open = Yes → Gate height and discharge are mandatory
+    - Duplicate check: warn if record for same site + same date already exists in Draft or Final
+    - Show clear red error messages below each invalid field
+    - Do NOT allow form submission if mandatory fields are empty
+
+  4.3  TWO-STAGE SAVE WORKFLOW (critical business logic):
+
+    STAGE 1 — DRAFT SAVE:
+      - "Save as Draft" button saves record with status = DRAFT
+      - User can come back, edit, update, or DELETE the draft
+      - Draft records are ONLY visible to the field user who created them
+      - Draft records do NOT appear in Admin Dashboard
+      - Draft auto-save every 5 minutes (save silently in background)
+
+    STAGE 2 — FINAL SUBMIT:
+      - "Final Submit" button changes status from DRAFT → FINAL
+      - Capture final_submission_datetime (server timestamp, not client)
+      - After Final Submit: record is LOCKED — user CANNOT edit or delete
+      - Show confirmation popup: "Are you sure? Once submitted, you cannot edit."
+      - After successful final submission → show success message with
+        submission reference number
+
+    STATUS VALUES: DRAFT | FINAL
+
+  4.4  DRAFT MANAGEMENT:
+    - User's home screen shows their draft records in a list
+    - Each draft shows: Date, Site, Water Level, Last Edited Time
+    - Tap draft → open form pre-filled with saved data → edit → re-save or finalize
+    - Delete draft button (with confirmation dialog)
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 5 — ADMIN DASHBOARD
+─────────────────────────────────────────────────────────────────────────────
+
+Central monitoring interface for Admin users only.
+Must be clean, data-rich, and fast-loading.
+
+  5.1  SUMMARY STATS CARDS (top of dashboard):
+    - Total Monitoring Sites
+    - Total Active Users
+    - Today's Total Finalized Submissions
+    - Sites with Missing Observations (today)
+    - Sites at Warning Level (water level ≥ warning_level)
+    - Sites at Danger Level (water level ≥ danger_level)
+    Click each card → drill down into filtered list
+
+  5.2  RECENT OBSERVATIONS TABLE:
+    Columns: Site Name | District | Observer | Obs Date | Water Level |
+             Status (Normal/Warning/Danger) | Submitted At | Actions
+    - Paginated (20 rows per page)
+    - Sortable by each column
+    - Filter by: Date Range | Site | District | State | Status
+    - Search box (site name or code)
+    - Export filtered results to Excel / CSV / PDF
+
+  5.3  MISSING OBSERVATIONS ALERT:
+    - List of sites that have NOT submitted final observation for today
+    - Show site name, last observation date, assigned users
+    - Highlighted in orange/red color
+
+  5.4  HIGH WATER LEVEL ALERTS:
+    - Automatic alert list when water level ≥ warning_level or danger_level
+    - Color coded: Yellow = warning, Red = danger
+    - Show site name, current level, danger level, difference
+
+  5.5  Admin can VIEW (read-only) any finalized observation record in full detail.
+       Admin CANNOT edit finalized records.
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 6 — GIS MAP INTERFACE (Leaflet.js)
+─────────────────────────────────────────────────────────────────────────────
+
+  6.1  Base map: OpenStreetMap tiles (free, no API key needed)
+       Fallback: ESRI Satellite layer (switchable via layer control)
+
+  6.2  All active dam sites shown as circle markers.
+       Marker color based on latest finalized water level:
+         GREEN  = water level < warning_level (Normal)
+         YELLOW = water level >= warning_level but < danger_level (Warning)
+         RED    = water level >= danger_level (Danger)
+         GREY   = no observation submitted today
+
+  6.3  Click marker → popup shows:
+         Site Name, Site Code
+         River Name, District
+         Latest Water Level (meters)
+         Full Reservoir Level
+         Danger Level
+         Observation Date & Time
+         Status badge (Normal / Warning / Danger)
+         [View Full Details] button → opens observation detail modal
+
+  6.4  Map controls:
+         - Zoom in/out
+         - Locate my position (for mobile field users)
+         - Layer switcher (Street / Satellite)
+         - Legend showing color coding
+
+  6.5  Map must work on mobile screens without breaking layout.
+       Touch/pinch zoom supported via Leaflet defaults.
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 7 — REPORTS MODULE
+─────────────────────────────────────────────────────────────────────────────
+
+Admin-only. All reports downloadable. Do NOT show data in browser popups.
+Generate file server-side and trigger download.
+
+  REPORT 1 — Daily Observation Report
+    Parameters: Select Date
+    Content: All finalized observations for selected date across all sites
+    Columns: Site Code | Site Name | District | Water Level | Inflow |
+             Outflow | Storage | Rainfall | Gates | Observer | Time
+
+  REPORT 2 — Site-Wise Report
+    Parameters: Select Site + Date Range
+    Content: All finalized records for that site within date range
+    Include: Site info header, observation table, trend summary
+
+  REPORT 3 — Monthly Summary Report
+    Parameters: Select Month + Year
+    Content: Day-wise summary for each site — water level trend
+    Include: Max/Min/Average water level per site
+
+  REPORT 4 — Missing Observations Report
+    Parameters: Date Range
+    Content: Sites that did NOT submit observation on each date in range
+    Format: Site Name | Missing Dates | Last Observation Date
+
+  REPORT 5 — User Activity Report
+    Parameters: Date Range
+    Content: Login history, number of records submitted per user
+    Columns: Username | Site | Login Count | Records Submitted | Last Active
+
+  REPORT 6 — Reservoir Condition Report
+    Parameters: Date Range
+    Content: Sites at Warning/Danger level during selected period
+    Include: Dates, water levels, status, comparison with danger level
+
+  All reports: Export as Excel (.xlsx) AND PDF AND CSV
+  Use openpyxl for Excel, ReportLab for PDF, Python csv for CSV.
+  Add report header with: Logo placeholder, Report Title, Generated Date,
+  Generated By (admin username), Date Range.
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 8 — AUDIT LOG
+─────────────────────────────────────────────────────────────────────────────
+
+Track all important system events automatically (no manual entry).
+
+  Events to log:
+    - User login (success and failure)
+    - User logout
+    - Password change / reset
+    - Record created (draft)
+    - Draft record edited
+    - Draft record deleted
+    - Record finalized (final submit)
+    - Site Master created / updated
+    - User account created / modified / locked / unlocked
+
+  Log fields:
+    - log_id, event_type, username, site_id (if applicable),
+      record_id (if applicable), ip_address, timestamp, description
+
+  Admin can view audit logs:
+    - Filter by event type, username, date range
+    - Export to Excel/CSV
+
+─────────────────────────────────────────────────────────────────────────────
+MODULE 9 — SECURITY REQUIREMENTS
+─────────────────────────────────────────────────────────────────────────────
+
+  - HTTPS/SSL enforced on all pages (via GCP managed SSL)
+  - All Django views require @login_required decorator
+  - Role-based access: Admin views protected with @permission_required
+  - CSRF tokens on every POST form
+  - No raw SQL queries — use Django ORM exclusively
+  - Input sanitization on all user-supplied text fields
+  - File upload validation: allow only .jpg, .jpeg, .png formats
+    Max file size 5MB per upload. Virus scan not required (client decision).
+  - Rate limiting on login endpoint (max 5 attempts per IP per 10 minutes)
+  - Django SECRET_KEY stored in environment variable, not in code
+  - Database credentials stored in GCP Secret Manager or .env file
+  - DEBUG = False in production settings
+
+─────────────────────────────────────────────────────────────────────────────
+UI/UX DESIGN REQUIREMENTS
+─────────────────────────────────────────────────────────────────────────────
+
+  - Color scheme: Professional blues and whites with accent colors
+      Primary:   #1565C0 (deep blue — government/water authority style)
+      Secondary: #0288D1 (light blue)
+      Danger:    #C62828 (red for alerts)
+      Warning:   #F57F17 (amber/orange for warnings)
+      Success:   #2E7D32 (green for normal/safe)
+      Background:#F5F7FA (light grey)
+
+  - Font: Roboto or Noto Sans (Google Fonts, free)
+  - Mobile-first CSS layout using CSS Grid + Flexbox
+  - All buttons minimum 44px height (touch-friendly)
+  - Navigation: collapsible sidebar on desktop, hamburger menu on mobile
+  - Loading spinner on all API calls
+  - Toast notifications for success/error messages (auto-dismiss 3 seconds)
+  - No page reloads for form saves (use AJAX / Fetch API)
+  - Hindi language support consideration: use Unicode-compatible fonts
+
+─────────────────────────────────────────────────────────────────────────────
+DATABASE DESIGN — KEY RELATIONSHIPS
+─────────────────────────────────────────────────────────────────────────────
+
+  Sites (1) ──────────────────── (Many) Users
+  Sites (1) ──────────────────── (Many) Observations
+  Users (1) ──────────────────── (Many) Observations
+  Observations (1) ───────────── (Many) ObservationPhotos
+  Users (1) ──────────────────── (Many) AuditLogs
+
+  All tables must have:
+    - created_at (auto timestamp)
+    - updated_at (auto timestamp)
+    - is_deleted (boolean, default False) — soft delete pattern
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION B — STEP-BY-STEP BUILD GUIDE (Your Personal Roadmap)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Follow these steps IN ORDER. Complete each step fully before moving to next.
+Do not jump ahead. Tick each step when done.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — LOCAL DEVELOPMENT SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] STEP 1: Install Python 3.11+ on your computer
+    - Download from python.org
+    - During install: CHECK "Add Python to PATH"
+    - Verify: open terminal → type "python --version"
+
+[ ] STEP 2: Install PostgreSQL 15 on your computer
+    - Download from postgresql.org
+    - Remember the password you set for 'postgres' user
+    - Install pgAdmin 4 (GUI tool) — makes managing DB easier
+
+[ ] STEP 3: Install VS Code (code editor)
+    - Download from code.visualstudio.com
+    - Install extensions: Python, Django, PostgreSQL
+
+[ ] STEP 4: Create project folder
+    - Create folder: C:\projects\dam_monitoring  (Windows)
+      OR  /home/yourname/dam_monitoring  (Linux/Mac)
+    - Open this folder in VS Code
+
+[ ] STEP 5: Create Python virtual environment
+    - Open terminal in VS Code
+    - Run: python -m venv venv
+    - Activate:
+        Windows:  venv\Scripts\activate
+        Mac/Linux: source venv/bin/activate
+    - You will see (venv) in terminal — this means it's active
+
+[ ] STEP 6: Install required Python packages
+    Run these commands one by one:
+      pip install django==4.2
+      pip install djangorestframework
+      pip install psycopg2-binary
+      pip install pillow
+      pip install openpyxl
+      pip install reportlab
+      pip install python-dotenv
+      pip install django-cors-headers
+      pip install whitenoise
+
+[ ] STEP 7: Create Django project
+    - Run: django-admin startproject dam_project .
+    - Run: python manage.py startapp core
+    - Run: python manage.py startapp accounts
+    - Run: python manage.py startapp sites_master
+    - Run: python manage.py startapp observations
+    - Run: python manage.py startapp reports_module
+
+[ ] STEP 8: Create PostgreSQL database
+    - Open pgAdmin 4
+    - Right-click "Databases" → Create → Database
+    - Name it: dam_monitoring_db
+    - Save
+
+[ ] STEP 9: Configure settings.py
+    Tell AI: "Configure Django settings.py for my dam monitoring project.
+    Database: PostgreSQL, DB name: dam_monitoring_db, user: postgres.
+    Add all installed apps, static files config, media files config,
+    login URL, session timeout. Use python-dotenv for secrets."
+
+[ ] STEP 10: Run first migration
+    - python manage.py makemigrations
+    - python manage.py migrate
+    - python manage.py createsuperuser (create your admin account)
+    - python manage.py runserver
+    - Open browser → http://127.0.0.1:8000 → should see Django welcome page
+    ✓ Local setup complete
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — BUILD BACKEND MODELS & API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] STEP 11: Build User Model
+    Tell AI: "Create custom Django user model in accounts/models.py with
+    fields: full_name, username, password (hashed), email, mobile_number,
+    user_role (choices: Admin/SiteUser), assigned_site (FK to Site),
+    account_status (Active/Inactive/Locked), last_login, login_attempts,
+    created_by, created_at, updated_at, is_deleted."
+
+[ ] STEP 12: Build Site Master Model
+    Tell AI: "Create Django model for dam monitoring sites in
+    sites_master/models.py with all fields listed in Module 2 above."
+
+[ ] STEP 13: Build Observation Model
+    Tell AI: "Create Django model for dam water level observations in
+    observations/models.py with all fields listed in Module 4 (Sections A-H).
+    Include status field (DRAFT/FINAL), final_submission_datetime,
+    gps_latitude, gps_longitude, created_at, updated_at."
+
+[ ] STEP 14: Build ObservationPhoto Model
+    Tell AI: "Create Django model ObservationPhoto with FK to Observation,
+    photo field (ImageField), upload_to='observation_photos/', uploaded_at."
+
+[ ] STEP 15: Build AuditLog Model
+    Tell AI: "Create Django AuditLog model with fields: event_type,
+    username, site_id, record_id, ip_address, timestamp, description."
+
+[ ] STEP 16: Run migrations for all models
+    - python manage.py makemigrations
+    - python manage.py migrate
+    - Check pgAdmin → all tables should appear in dam_monitoring_db
+
+[ ] STEP 17: Build Authentication Views
+    Tell AI: "Build Django login view with rate limiting (5 attempts max),
+    session management, role-based redirect (Admin→dashboard, SiteUser→entry),
+    logout view with session clear, and login audit logging."
+
+[ ] STEP 18: Build Site Master CRUD Views
+    Tell AI: "Build Django views for Site Master: list all sites with
+    search/filter, create site, edit site, activate/deactivate site.
+    Admin only. Use Django class-based views."
+
+[ ] STEP 19: Build User Master CRUD Views
+    Tell AI: "Build Django views for User Master: list users, create user
+    with role+site assignment, edit user, reset password, lock/unlock account.
+    Admin only."
+
+[ ] STEP 20: Build Observation Entry Views
+    Tell AI: "Build Django views for observation data entry:
+    - GET view: show empty form pre-filled with site info and today's date
+    - POST view for Save as Draft (status=DRAFT)
+    - POST view for Final Submit (status=FINAL, lock record)
+    - Edit draft view (only if status=DRAFT)
+    - Delete draft view (only if status=DRAFT, with confirmation)
+    - Check duplicate: same site + same date → return warning
+    - Auto-capture server timestamp for final_submission_datetime
+    - Handle photo uploads (up to 5, validate type and size)"
+
+[ ] STEP 21: Build Admin Dashboard API
+    Tell AI: "Build Django views for admin dashboard:
+    - Summary stats (site count, user count, today submissions, missing, alerts)
+    - Finalized observations list with filters (date, site, district, status)
+    - Missing observations list for today
+    - High water level alerts list
+    All views: admin only, return JSON for AJAX calls."
+
+[ ] STEP 22: Build Reports Views
+    Tell AI: "Build Django report generation views using openpyxl and
+    ReportLab. Create all 6 reports listed in Module 7. Each report returns
+    a file download response (Excel/PDF/CSV). Admin only."
+
+[ ] STEP 23: Build Audit Log View
+    Tell AI: "Build admin view to display audit log with filters
+    (event type, username, date range) and export to Excel/CSV."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — BUILD FRONTEND INTERFACE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] STEP 24: Create base HTML template
+    Tell AI: "Create Django base.html template with:
+    - Responsive navigation (sidebar desktop, hamburger mobile)
+    - Color scheme: primary #1565C0, secondary #0288D1
+    - Font: Roboto from Google Fonts
+    - Toast notification area
+    - Loading spinner overlay
+    - Block tags: title, content, extra_css, extra_js
+    - Mobile-first CSS (360px minimum width support)"
+
+[ ] STEP 25: Build Login Page
+    Tell AI: "Build login.html template:
+    - Centered card design with dam authority logo placeholder
+    - Username + password fields (large, touch-friendly)
+    - Show/hide password toggle
+    - Remember Me checkbox
+    - Submit button (full width, 48px height)
+    - Error message display area
+    - Works perfectly on mobile (360px width)"
+
+[ ] STEP 26: Build Admin Dashboard Page
+    Tell AI: "Build admin_dashboard.html:
+    - 6 summary stat cards at top (icons + numbers + labels)
+    - Color-coded cards: blue for info, orange for missing, red for danger
+    - Filterable observations table below
+    - Date range picker, site dropdown, district dropdown, status filter
+    - Paginated table (20 rows, with pagination controls)
+    - Export buttons: Excel, CSV, PDF
+    - Fully responsive (table scrolls horizontally on mobile)"
+
+[ ] STEP 27: Build GIS Map Page
+    Tell AI: "Build map.html using Leaflet.js 1.9:
+    - Full-screen map using OpenStreetMap tiles
+    - Load all active sites from API as markers
+    - Color markers: green/yellow/red/grey based on water level vs danger level
+    - Click popup with site details and [View Full Details] button
+    - Layer control (street/satellite)
+    - Legend for color coding
+    - Works on mobile (touch zoom, tap popups)
+    - Load site data via AJAX call to Django API"
+
+[ ] STEP 28: Build Data Entry Form (MOST IMPORTANT)
+    Tell AI: "Build observation_entry.html — mobile-first data entry form:
+    - Section A: Auto-filled site info (read-only, shown at top)
+    - Section B-H: All fields listed in Module 4 of this prompt
+    - Water level field: show color alert inline when value entered
+    - Gate fields: show/hide based on 'Gates Open' radio button
+    - Percentage Full: auto-calculate from storage inputs
+    - Photo upload: camera capture button, thumbnail preview grid
+    - GPS capture button: get lat/lng from browser geolocation API
+    - Two buttons at bottom: [Save as Draft] and [Final Submit]
+    - Final Submit: show confirmation modal before submitting
+    - All validation rules from Module 4 Section 4.2
+    - AJAX form submission (no page reload)
+    - Show success/error toast notifications
+    - Large touch targets (min 44px), readable 16px+ font
+    - Works on 360px-414px screen widths"
+
+[ ] STEP 29: Build Draft Management Page (Site User)
+    Tell AI: "Build site_user_home.html:
+    - Welcome message with user name and assigned site
+    - [+ New Observation] button (prominent, full width on mobile)
+    - My Drafts section: list of draft records
+      Each draft card: Date | Water Level | Last Edited | [Edit] [Delete]
+    - My Submitted Records section: list of finalized records (read-only view)
+    - Each record: Date | Water Level | Submitted At | [View] button
+    - Simple card layout, works well on mobile"
+
+[ ] STEP 30: Build Site Master Management Pages (Admin)
+    Tell AI: "Build admin site master pages:
+    - site_list.html: table of all sites with search, filter, pagination
+      Actions: Edit | Activate/Deactivate
+    - site_form.html: create/edit site form with map preview
+      Include Leaflet mini-map to pick/confirm coordinates
+    - Breadcrumb navigation"
+
+[ ] STEP 31: Build User Master Management Pages (Admin)
+    Tell AI: "Build admin user master pages:
+    - user_list.html: table with filters (role, site, status)
+      Actions: Edit | Reset Password | Lock/Unlock
+    - user_form.html: create/edit user form
+      When role = SiteUser → show site dropdown
+    - user_activity.html: login history for each user"
+
+[ ] STEP 32: Build Reports Page (Admin)
+    Tell AI: "Build reports.html:
+    - Report selection cards (one card per report type)
+    - Each card: Report name, description, parameter inputs, download buttons
+    - Three download buttons per report: [Excel] [PDF] [CSV]
+    - Date pickers and dropdowns for parameters
+    - Loading spinner while report generates"
+
+[ ] STEP 33: Build Audit Log Page (Admin)
+    Tell AI: "Build audit_log.html:
+    - Filter bar: event type dropdown, username, date range
+    - Table: timestamp | user | event | site | description
+    - Color-code rows by severity
+    - Pagination + export button"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 4 — TESTING (Local)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] STEP 34: Test authentication flow
+    - Create 1 admin user, 3 site users
+    - Login as each → verify correct page loads
+    - Test wrong password 5 times → verify account locks
+    - Test admin unlock
+
+[ ] STEP 35: Test Site Master
+    - Add 5 test sites with real coordinates
+    - Edit one site
+    - Deactivate one site
+    - Verify map shows only active sites
+
+[ ] STEP 36: Test data entry form on mobile
+    - Open app on Android phone (connect to same WiFi)
+    - Use phone's IP address to access (e.g. http://192.168.1.5:8000)
+    - Test all fields
+    - Test Save as Draft → edit → Final Submit
+    - Verify photo upload works from phone camera
+    - Verify GPS capture works
+
+[ ] STEP 37: Test admin dashboard
+    - Submit 5 finalized observations from different site users
+    - Verify all 5 appear in admin dashboard
+    - Test all filters
+    - Test all 6 reports (download Excel, PDF, CSV)
+
+[ ] STEP 38: Test map
+    - Verify all sites appear as markers
+    - Verify color coding is correct
+    - Test popup details
+    - Test on mobile (pinch zoom, tap popup)
+
+[ ] STEP 39: Test validation
+    - Try future date → should block
+    - Try negative water level → should block
+    - Try submitting final twice → should block
+    - Try editing finalized record → should be blocked
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 5 — DEPLOY TO GOOGLE CLOUD PLATFORM (GCP)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NOTE: "Google Antigravity" is not a real GCP product name.
+      The correct platform is Google Cloud Platform (GCP).
+      The right services for this project are:
+        - Cloud Run (for Django app — easiest deployment)
+        - Cloud SQL (PostgreSQL database)
+        - Cloud Storage (for uploaded photos)
+        - Google Cloud Armor (optional — security/WAF)
+      Follow steps below carefully.
+
+[ ] STEP 40: Create Google Cloud account
+    - Go to: https://cloud.google.com
+    - Sign in with Google account
+    - Click "Start Free" → enter billing info (required but free tier available)
+    - GCP gives $300 free credits for new accounts
+
+[ ] STEP 41: Create new GCP Project
+    - In GCP Console → click project dropdown → "New Project"
+    - Name: dam-monitoring-app
+    - Click Create → wait 30 seconds
+
+[ ] STEP 42: Enable required GCP APIs
+    Go to APIs & Services → Enable each:
+    - Cloud Run API
+    - Cloud SQL Admin API
+    - Cloud Build API
+    - Artifact Registry API
+    - Secret Manager API
+    - Cloud Storage API
+
+[ ] STEP 43: Install Google Cloud SDK on your computer
+    - Download from: https://cloud.google.com/sdk/docs/install
+    - Run installer
+    - Open new terminal → type: gcloud version (should show version)
+    - Login: gcloud auth login (opens browser)
+    - Set project: gcloud config set project dam-monitoring-app
+
+[ ] STEP 44: Create Cloud SQL PostgreSQL instance
+    - GCP Console → SQL → Create Instance → PostgreSQL
+    - Instance ID: dam-monitoring-db
+    - Password: create strong password and SAVE IT
+    - Region: asia-south1 (Mumbai — closest to India)
+    - Machine: db-f1-micro (cheapest for testing)
+    - Click Create (takes 5-10 minutes)
+    - After created: note the "Connection name" shown (you will need this)
+
+[ ] STEP 45: Create database and user in Cloud SQL
+    - Click your instance → Databases tab → Create Database
+    - Name: dam_monitoring_db
+    - Click Users tab → Add User
+    - Username: dam_app_user
+    - Password: create strong password
+
+[ ] STEP 46: Create Cloud Storage bucket for photos
+    - GCP Console → Cloud Storage → Create Bucket
+    - Name: dam-monitoring-photos-[yourprojectid]
+    - Region: asia-south1
+    - Access control: Uniform
+    - Click Create
+
+[ ] STEP 47: Store secrets in Secret Manager
+    Tell AI: "Show me how to add these secrets to GCP Secret Manager
+    and how to read them in Django settings.py using google-cloud-secret-manager:
+    - DATABASE_PASSWORD
+    - DJANGO_SECRET_KEY
+    - DATABASE_USER"
+
+[ ] STEP 48: Prepare Django for production
+    Tell AI: "Update my Django settings.py for GCP production deployment:
+    - DEBUG = False
+    - ALLOWED_HOSTS = ['*.run.app', 'yourdomain.com']
+    - Database: Cloud SQL via Cloud SQL Python Connector
+    - Static files: served via WhiteNoise
+    - Media files: Cloud Storage bucket
+    - Read secrets from GCP Secret Manager
+    - SECURE_SSL_REDIRECT = True
+    - SESSION_COOKIE_SECURE = True
+    - CSRF_COOKIE_SECURE = True"
+
+[ ] STEP 49: Create Dockerfile
+    Tell AI: "Create Dockerfile for my Django dam monitoring app:
+    - Base image: python:3.11-slim
+    - Install dependencies from requirements.txt
+    - Collect static files
+    - Use gunicorn as production server
+    - PORT environment variable support
+    - Non-root user for security"
+
+[ ] STEP 50: Create requirements.txt
+    Tell AI: "Generate complete requirements.txt for my dam monitoring
+    Django project including: django, djangorestframework, psycopg2-binary,
+    pillow, openpyxl, reportlab, python-dotenv, django-cors-headers,
+    whitenoise, gunicorn, cloud-sql-python-connector, google-cloud-storage,
+    google-cloud-secret-manager, pg8000"
+
+[ ] STEP 51: Deploy to Cloud Run
+    Run these commands in terminal (project root folder):
+
+    # Build and push Docker image
+    gcloud builds submit --tag gcr.io/dam-monitoring-app/dam-web
+
+    # Deploy to Cloud Run
+    gcloud run deploy dam-web \
+      --image gcr.io/dam-monitoring-app/dam-web \
+      --platform managed \
+      --region asia-south1 \
+      --allow-unauthenticated \
+      --add-cloudsql-instances [YOUR_INSTANCE_CONNECTION_NAME] \
+      --set-env-vars DJANGO_SETTINGS_MODULE=dam_project.settings_prod
+
+    GCP will give you a URL like: https://dam-web-xxxxx-el.a.run.app
+    Open this URL in browser → your app is live!
+
+[ ] STEP 52: Run database migrations on Cloud Run
+    gcloud run jobs create migrate-job \
+      --image gcr.io/dam-monitoring-app/dam-web \
+      --command "python,manage.py,migrate"
+    gcloud run jobs execute migrate-job
+
+[ ] STEP 53: Create first admin user in production
+    - Connect to Cloud SQL using Cloud SQL Auth Proxy
+    - OR use Django shell via Cloud Run exec
+    Tell AI: "Show me how to create superuser on Cloud Run deployed Django app"
+
+[ ] STEP 54: Set up custom domain (optional)
+    - GCP Console → Cloud Run → your service → Custom Domains
+    - Add your domain → follow DNS verification steps
+    - GCP provides free managed SSL certificate automatically
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 6 — POST-DEPLOYMENT TASKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] STEP 55: Full end-to-end test on production URL
+    - Login as admin → create 2 sites → create 3 users
+    - Login as site user on mobile phone
+    - Enter observation → save draft → edit → final submit
+    - Login as admin → verify in dashboard → download reports
+
+[ ] STEP 56: Set up GCP monitoring (optional but recommended)
+    - GCP Console → Cloud Monitoring → Create Uptime Check
+    - Alert if app goes down
+    - Set up budget alerts so cloud costs don't surprise you
+
+[ ] STEP 57: Train client users
+    - Create user manual (simple PDF with screenshots)
+    - Walk admin through: creating sites, creating users
+    - Walk field staff through: login on phone, data entry, submit
+
+[ ] STEP 58: Hand over to client
+    - Share production URL
+    - Share admin credentials (let admin change password immediately)
+    - Share this build guide for future reference
+    - Document any future enhancement items (SMS alerts, offline sync, etc.)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION C — QUICK REFERENCE: HOW TO TELL AI WHAT TO BUILD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When talking to AI (Claude / ChatGPT / Copilot) during development:
+
+  ALWAYS start each session by pasting SECTION A of this document.
+  Then add your specific request for that step.
+
+  Example prompts per step:
+
+  For models:
+    "Using the requirements in [paste Section A], build the Django models
+    for Module 2 — Site Master. Include all fields, Meta class, __str__,
+    and admin registration."
+
+  For views:
+    "Using the requirements in [paste Section A], build Django views
+    for the Two-Stage Data Entry Workflow (Module 4, Section 4.3).
+    Include draft save, final submit, edit draft, delete draft.
+    Return JSON responses for AJAX calls."
+
+  For templates:
+    "Using the requirements in [paste Section A], build the HTML/CSS/JS
+    template for the mobile data entry form (Step 28). Full responsive
+    design, touch-friendly, AJAX submission, all validations."
+
+  For deployment:
+    "Help me complete Step [X] from my deployment guide. I am deploying
+    a Django + PostgreSQL app to GCP Cloud Run."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION D — ESTIMATED COST ON GCP (Monthly)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Cloud Run (app hosting)   : ~$5–15/month (scales with usage)
+  Cloud SQL db-f1-micro     : ~$10–15/month
+  Cloud Storage (photos)    : ~$1–3/month (50 sites × 5 photos/day)
+  TOTAL ESTIMATED           : ~$15–35/month (well within $300 free credit)
+
+  For production with more users/traffic: upgrade Cloud SQL to db-g1-small
+  (~$25/month) for better performance.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECTION E — FOLDER STRUCTURE (Final Project)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  dam_project/
+  ├── dam_project/
+  │   ├── settings.py          (development settings)
+  │   ├── settings_prod.py     (production settings for GCP)
+  │   ├── urls.py
+  │   └── wsgi.py
+  ├── accounts/                (login, users, auth)
+  ├── sites_master/            (dam/reservoir site registry)
+  ├── observations/            (data entry, draft/final workflow)
+  ├── reports_module/          (Excel, PDF, CSV generation)
+  ├── templates/               (all HTML templates)
+  │   ├── base.html
+  │   ├── auth/
+  │   ├── admin_panel/
+  │   └── site_user/
+  ├── static/                  (CSS, JS, images, Leaflet)
+  ├── media/                   (uploaded photos — local dev only)
+  ├── Dockerfile
+  ├── requirements.txt
+  ├── .env                     (local secrets — NEVER commit to git)
+  └── manage.py
+
+================================================================================
+END OF DOCUMENT
+Dam Water Level Monitoring App — Master Prompt + Build Guide
+Generated for client project — keep this file safe
+================================================================================

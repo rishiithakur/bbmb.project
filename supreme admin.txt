@@ -1,0 +1,77 @@
+admin@groundwater.gov.in
+Admin@1234
+
+
+### Supreme Admin Credentials
+
+* Username: supreme_admin
+* Password: SupremeDam@2026
+
+Role:
+
+* Supreme Admin
+* Full unrestricted system access
+
+Permissions:
+
+* Full reports access
+* Create/edit/delete sites
+* Full audit logs
+* User management
+* Global GIS monitoring
+* System configuration
+* All dashboard modules
+* Observation oversight
+Create a new highest-level role called “Supreme Admin” with complete unrestricted system access.
+
+### 1. System Administrator
+- **Username**: admin_master
+- **Password**: DamAdmin@2026
+- **Role**: Full access to site management, user management, and audit logs.
+ 
+ 
+ test user
+
+Username
+rahul_operator
+Password
+Rahul@2026
+Role
+Operator
+
+Dam Site (For Operators)
+sujanpur
+TEST
+rishii_op
+RISHII@2026
+
+Reports & Analytics
+Generate and export dam monitoring data for official review. not on this for 
+
+
+
+Name: Test Vijay
+Username/Login ID: testvij
+Password: Test@1234
+Role: Operator
+Name: Test Sintu
+Username/Login ID: testsintu
+Password: Test@1234
+Role: Operator
+
+
+
+
+
+
+
+
+
+
+
+TEP 4 — RUN COMMAND AGAIN
+
+Now return to CMD:
+
+D:
+cd cloudflared

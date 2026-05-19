@@ -1,0 +1,178 @@
+@import "tailwindcss";
+
+/* Leaflet CSS */
+@import 'leaflet/dist/leaflet.css';
+
+@theme {
+  --color-alert-green: #00B050;
+  --color-alert-yellow: #FFD700;
+  --color-alert-orange: #FF8C00;
+  --color-alert-red: #FF0000;
+  --color-alert-grey: #808080;
+  
+  --color-primary: #1B4F72;
+  --color-sidebar: #1C2833;
+  --color-surface: #F4F6F7;
+  
+  --font-sans: "Poppins", "Inter", "system-ui", "sans-serif";
+  --font-mono: "JetBrains Mono", "monospace";
+
+  --animate-bounce-slow: bounce-slow 3s infinite;
+
+  @keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+}
+
+:root {
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+  background-color: var(--color-surface);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+.panel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #4B5563 transparent;
+}
+
+/* BBMC Theme Extensions */
+.bbmc-input {
+  width: 100%;
+  height: 44px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.bbmc-input:hover {
+  border-color: #94a3b8;
+}
+
+.bbmc-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  background: #ffffff;
+}
+
+textarea.bbmc-input {
+  height: auto;
+  min-height: 100px;
+}
+
+/* Alias used by ObservationForm */
+.field-input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+.field-input:hover { border-color: #94a3b8; }
+.field-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+textarea.field-input { height: auto; min-height: 80px; }
+
+.bbmc-popup .leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.bbmc-popup .leaflet-popup-content {
+  margin: 0;
+}
+
+.bbmc-popup .leaflet-popup-tip {
+  background: white;
+}
+
+/* ── Mobile viewport fix (iOS Safari address bar) ─────────────────────────── */
+html, body, #root {
+  /* Use dvh (dynamic viewport height) where supported, fallback to vh */
+  height: 100%;
+}
+
+body {
+  overflow-x: hidden;                 /* prevent horizontal scroll on mobile */
+  -webkit-text-size-adjust: 100%;     /* prevent iOS font scaling on rotation */
+}
+
+/* ── Smooth momentum scrolling for all scrollable areas ────────────────────── */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Minimum tap target for accessibility (WCAG 2.5.5) ─────────────────────── */
+button, a, [role="button"] {
+  min-height: 40px;
+  min-width: 40px;
+}
+
+/* Small icon-only buttons can opt out */
+button.btn-icon-sm {
+  min-height: 32px;
+  min-width: 32px;
+}
+
+/* ── Leaflet container must have explicit height ────────────────────────────── */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Prevent Leaflet overlapping mobile scroll ──────────────────────────────── */
+.leaflet-grab {
+  cursor: grab;
+}
+
+/* ── Responsive table overflow wrapper ─────────────────────────────────────── */
+.table-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Safe area insets for notched phones (iPhone X+) ───────────────────────── */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* ── Compact mobile form inputs ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .bbmc-input {
+    height: 40px;
+    padding: 8px 12px;
+    font-size: 16px;   /* prevents iOS zoom on focus */
+  }
+
+  /* Prevent iOS auto-zoom on input focus */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}

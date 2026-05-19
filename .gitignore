@@ -1,0 +1,74 @@
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+bin/
+lib/
+include/
+
+# Node Package Manager (NPM) Dependencies & Builds
+node_modules/
+dist/
+build/
+.svelte-kit/
+.next/
+out/
+.vercel/
+
+# Environment Files (Secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Python Compiled & Cache Files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Static Files root (if gathered locally)
+backend/staticfiles/
+staticfiles/
+
+# Logs & Databases
+*.log
+*.sqlite3
+db.sqlite3
+*.db
+
+# Media uploads in local development
+media/
+backend/media/
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# External Binaries
+cloudflared
+cloudflared.exe
