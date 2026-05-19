@@ -11,3 +11,5 @@ argon2-cffi
 python-dotenv
 bcrypt
 gunicorn
+dj-database-url
+whitenoise
