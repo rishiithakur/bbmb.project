@@ -85,12 +85,12 @@ cloudflared.exe
 # Root-level media, design docs, phase logs, script templates
 /*.pdf
 /*.txt
+!/requirements.txt
 /*.xlsx
 /*.json
 /*.bat
 /*.ps1
 /*.py
-/requirements.txt
 
 # Operational & Client Handover Guides (Kept locally only)
 /project_production/
