@@ -72,6 +72,7 @@ export default function Login() {
               <input
                 type="text"
                 required
+                autoComplete="username"
                 className="block w-full pl-11 pr-4 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-[#123C73] transition-all outline-none font-medium placeholder:text-slate-300"
                 placeholder="Enter username"
                 value={username}
@@ -89,6 +90,7 @@ export default function Login() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
+                autoComplete="current-password"
                 className="block w-full pl-11 pr-12 py-3 bg-white/70 border border-slate-200 rounded-xl text-slate-900 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-[#123C73] transition-all outline-none font-medium placeholder:text-slate-300"
                 placeholder="••••••••"
                 value={password}
